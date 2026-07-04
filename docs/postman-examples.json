@@ -1,0 +1,141 @@
+{
+  "info": {
+    "name": "Mandarim Learning API",
+    "description": "Exemplos de requisições para testar a API"
+  },
+  "exemplos": {
+    "1_criar_usuario": {
+      "method": "POST",
+      "url": "http://localhost:8080/api/usuarios",
+      "body": {
+        "nome": "João Silva",
+        "email": "joao@email.com",
+        "idiomaNativo": "Português",
+        "nivelHskAtual": 1
+      }
+    },
+    "2_criar_tema": {
+      "method": "POST",
+      "url": "http://localhost:8080/api/temas",
+      "body": {
+        "nome": "Cores",
+        "descricao": "Vocabulário sobre cores em mandarim"
+      }
+    },
+    "3_criar_tag": {
+      "method": "POST",
+      "url": "http://localhost:8080/api/tags",
+      "body": {
+        "nome": "básico"
+      }
+    },
+    "4_criar_conteudo_palavra": {
+      "method": "POST",
+      "url": "http://localhost:8080/api/conteudos",
+      "body": {
+        "tipo": "PALAVRA",
+        "hanzi": "你好",
+        "pinyin": "nǐ hǎo",
+        "traducao": "Olá",
+        "explicacao": "Cumprimento mais comum em mandarim",
+        "nivelHsk": 1,
+        "dificuldade": 1,
+        "temaIds": [1],
+        "tagIds": [1]
+      }
+    },
+    "5_criar_conteudo_frase": {
+      "method": "POST",
+      "url": "http://localhost:8080/api/conteudos",
+      "body": {
+        "tipo": "FRASE",
+        "hanzi": "我喜欢喝茶",
+        "pinyin": "wǒ xǐhuān hē chá",
+        "traducao": "Eu gosto de beber chá",
+        "explicacao": "Frase com estrutura sujeito + verbo + objeto",
+        "nivelHsk": 2,
+        "dificuldade": 2,
+        "temaIds": [3],
+        "tagIds": [3]
+      }
+    },
+    "6_criar_exercicio_multipla_escolha": {
+      "method": "POST",
+      "url": "http://localhost:8080/api/exercicios",
+      "body": {
+        "conteudoId": 1,
+        "tipo": "MULTIPLA_ESCOLHA",
+        "enunciado": "Qual a tradução de 你好?",
+        "respostaEsperada": "Olá",
+        "dificuldade": 1,
+        "alternativas": [
+          {"texto": "Olá", "correta": true},
+          {"texto": "Tchau", "correta": false},
+          {"texto": "Obrigado", "correta": false},
+          {"texto": "Desculpa", "correta": false}
+        ]
+      }
+    },
+    "7_criar_exercicio_traducao": {
+      "method": "POST",
+      "url": "http://localhost:8080/api/exercicios",
+      "body": {
+        "conteudoId": 1,
+        "tipo": "TRADUCAO_PT_MANDARIM",
+        "enunciado": "Traduza para mandarim: Olá",
+        "respostaEsperada": "你好",
+        "dificuldade": 2
+      }
+    },
+    "8_registrar_resposta": {
+      "method": "POST",
+      "url": "http://localhost:8080/api/respostas",
+      "body": {
+        "usuarioId": "UUID_DO_USUARIO",
+        "exercicioId": 1,
+        "respostaUsuario": "Olá",
+        "correta": true,
+        "nota": 10.00,
+        "tempoRespostaSegundos": 12,
+        "feedback": "Resposta correta! Parabéns!"
+      }
+    },
+    "9_atualizar_revisao": {
+      "method": "PUT",
+      "url": "http://localhost:8080/api/revisoes/1",
+      "body": {
+        "qualidade": 4
+      },
+      "descricao": "Qualidade 0-5: 0=falha total, 3=difícil, 4=bom, 5=perfeito"
+    },
+    "10_criar_recomendacao": {
+      "method": "POST",
+      "url": "http://localhost:8080/api/recomendacoes",
+      "body": {
+        "usuarioId": "UUID_DO_USUARIO",
+        "conteudoId": 1,
+        "motivo": "Conteúdo com baixa taxa de acerto",
+        "scorePrioridade": 8.500,
+        "origem": "REGRA"
+      }
+    },
+    "11_criar_conteudo_ia": {
+      "method": "POST",
+      "url": "http://localhost:8080/api/ia/conteudos",
+      "body": {
+        "usuarioId": "UUID_DO_USUARIO",
+        "prompt": "Gere 5 frases em mandarim sobre comida usando HSK 2",
+        "respostaJson": "{\"frases\": [{\"hanzi\": \"我想吃饭\", \"pinyin\": \"wǒ xiǎng chī fàn\", \"traducao\": \"Eu quero comer\"}]}",
+        "observacao": "Gerado para prática de vocabulário de comida"
+      }
+    },
+    "12_buscar_estatisticas_periodo": {
+      "method": "GET",
+      "url": "http://localhost:8080/api/estatisticas/usuario/UUID_DO_USUARIO/periodo?inicio=2024-01-01&fim=2024-12-31"
+    },
+    "13_buscar_revisoes_pendentes": {
+      "method": "GET",
+      "url": "http://localhost:8080/api/revisoes/usuario/UUID_DO_USUARIO/pendentes"
+    }
+  }
+}

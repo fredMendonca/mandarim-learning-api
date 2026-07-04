@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: mandarim-learning-api
+
+  datasource:
+    url: jdbc:postgresql://localhost:5433/mandarim_db?currentSchema=mandarim
+    username: postgres
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        default_schema: mandarim
+    open-in-view: false
+
+  flyway:
+    enabled: false
+
+  ai:
+    openai:
+      api-key: ${GROQ_API_KEY}
+      base-url: https://api.groq.com/openai
+      chat:
+        options:
+          model: llama-3.3-70b-versatile
+          temperature: 0.7
+
+server:
+  port: 8080
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
