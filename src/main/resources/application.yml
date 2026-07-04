@@ -33,6 +33,11 @@ spring:
 server:
   port: 8080
 
+app:
+  jwt:
+    secret: mandarim-learning-api-secret-key-must-be-at-least-256-bits-long-2026
+    expiration-ms: 86400000
+
 springdoc:
   api-docs:
     path: /api-docs

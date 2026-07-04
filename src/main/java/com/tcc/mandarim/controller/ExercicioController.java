@@ -8,6 +8,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,7 +33,17 @@ public class ExercicioController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar todos os exercícios")
+    @Operation(summary = "Listar exercícios com paginação")
+    public ResponseEntity<Page<ExercicioResponse>> listarPaginado(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String tipo) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+        return ResponseEntity.ok(service.listarPaginado(pageable, tipo));
+    }
+
+    @GetMapping("/todos")
+    @Operation(summary = "Listar todos os exercícios (sem paginação)")
     public ResponseEntity<List<ExercicioResponse>> listarTodos() {
         return ResponseEntity.ok(service.listarTodos());
     }

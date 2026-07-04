@@ -11,6 +11,8 @@ import com.tcc.mandarim.mapper.ExercicioMapper;
 import com.tcc.mandarim.repository.ConteudoRepository;
 import com.tcc.mandarim.repository.ExercicioRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,6 +54,20 @@ public class ExercicioService {
         return repository.findAll().stream()
                 .map(mapper::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ExercicioResponse> listarPaginado(Pageable pageable, String tipo) {
+        Page<Exercicio> page;
+
+        if (tipo != null && !tipo.isBlank()) {
+            TipoExercicio tipoEnum = TipoExercicio.valueOf(tipo);
+            page = repository.findByTipo(tipoEnum, pageable);
+        } else {
+            page = repository.findAll(pageable);
+        }
+
+        return page.map(mapper::toResponse);
     }
 
     @Transactional(readOnly = true)

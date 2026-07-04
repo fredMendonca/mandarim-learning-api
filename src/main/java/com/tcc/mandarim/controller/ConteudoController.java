@@ -36,7 +36,7 @@ public class ConteudoController {
     @Operation(summary = "Listar conteúdos com paginação")
     public ResponseEntity<Page<ConteudoResponse>> listarPaginado(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "30") int size,
+            @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String tipo,
             @RequestParam(required = false) Integer nivelHsk) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
