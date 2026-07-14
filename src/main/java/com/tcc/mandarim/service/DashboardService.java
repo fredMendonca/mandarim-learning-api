@@ -315,6 +315,7 @@ public class DashboardService {
 
         // === Ranking Alunos (top 10 por taxa de acerto) ===
         List<Map<String, Object>> rankingAlunos = todosUsuarios.stream()
+                .filter(u -> u.getRole() == null || u.getRole() != com.tcc.mandarim.entity.enums.Role.ADMIN)
                 .map(u -> {
                     List<Resposta> respostasUsuario = todasRespostas.stream()
                             .filter(r -> r.getUsuarioId() != null && r.getUsuarioId().equals(u.getId()))
@@ -340,6 +341,7 @@ public class DashboardService {
         // === Alunos Baixa Atividade (sem respostas nos últimos 7 dias) ===
         LocalDate seteDiasAtras = hoje.minusDays(7);
         List<Map<String, Object>> alunosBaixaAtividade = todosUsuarios.stream()
+                .filter(u -> u.getRole() == null || u.getRole() != com.tcc.mandarim.entity.enums.Role.ADMIN)
                 .filter(u -> todasRespostas.stream()
                         .noneMatch(r -> r.getUsuarioId() != null
                                 && r.getUsuarioId().equals(u.getId())

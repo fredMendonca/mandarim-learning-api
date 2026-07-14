@@ -2,8 +2,6 @@ package com.tcc.mandarim.service;
 
 import com.tcc.mandarim.dto.request.RegistrarRespostaRevisaoRequest;
 import com.tcc.mandarim.dto.response.IndicadoresRevisaoResponse;
-import com.tcc.mandarim.dto.response.IndicadoresRevisaoResponse.AcertosErros;
-import com.tcc.mandarim.dto.response.IndicadoresRevisaoResponse.EvolucaoDiaria;
 import com.tcc.mandarim.dto.response.RevisaoInteligenteResponse;
 import com.tcc.mandarim.entity.Conteudo;
 import com.tcc.mandarim.entity.Resposta;
@@ -13,6 +11,7 @@ import com.tcc.mandarim.repository.ConteudoRepository;
 import com.tcc.mandarim.repository.ExercicioRepository;
 import com.tcc.mandarim.repository.RespostaRepository;
 import com.tcc.mandarim.repository.RevisaoRepository;
+import com.tcc.mandarim.util.RespostaValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -188,7 +187,43 @@ public class RevisaoInteligenteService {
                 : (dominados * 100.0 / revisoes.size());
 
         // Evolução da retenção nos últimos 14 dias
-        List<EvolucaoDiaria> evolucao = calcularEvolucaoRetencao(respostas, 14);
+        List<IndicadoresRevisaoResponse.EvolucaoRetencao> evolucaoRetencaoList = new ArrayList<>();
+        for (int i = 13; i >= 0; i--) {
+            LocalDate dia = LocalDate.now().minusDays(i);
+            long revisoesNaoVencidas = revisoes.stream()
+                    .filter(r -> r.getProximaRevisao() != null && r.getProximaRevisao().isAfter(dia))
+                    .count();
+            double retDia = revisoes.isEmpty() ? 0.0 : (revisoesNaoVencidas * 100.0 / revisoes.size());
+            evolucaoRetencaoList.add(IndicadoresRevisaoResponse.EvolucaoRetencao.builder()
+                    .data(dia.toString())
+                    .retencao(Math.round(retDia * 10.0) / 10.0)
+                    .build());
+        }
+
+        // Evolução de desempenho nos últimos 30 dias (taxa acerto + tempo médio por dia)
+        List<IndicadoresRevisaoResponse.EvolucaoDesempenho> evolucaoDesempenho = new ArrayList<>();
+        for (int i = 29; i >= 0; i--) {
+            LocalDate dia = LocalDate.now().minusDays(i);
+            List<Resposta> doDia = respostas.stream()
+                    .filter(r -> r.getRespondidoEm() != null && r.getRespondidoEm().toLocalDate().equals(dia))
+                    .collect(Collectors.toList());
+            double taxaDia = 0.0;
+            double tempoDia = 0.0;
+            if (!doDia.isEmpty()) {
+                long acertosDia = doDia.stream().filter(r -> Boolean.TRUE.equals(r.getCorreta())).count();
+                taxaDia = Math.round((acertosDia * 100.0 / doDia.size()) * 10.0) / 10.0;
+                tempoDia = doDia.stream()
+                        .filter(r -> r.getTempoRespostaSegundos() != null)
+                        .mapToInt(Resposta::getTempoRespostaSegundos)
+                        .average().orElse(0.0);
+                tempoDia = Math.round(tempoDia * 10.0) / 10.0;
+            }
+            evolucaoDesempenho.add(IndicadoresRevisaoResponse.EvolucaoDesempenho.builder()
+                    .data(dia.toString())
+                    .taxaAcerto(taxaDia)
+                    .tempoMedio(tempoDia)
+                    .build());
+        }
 
         // Revisões por prioridade
         List<RevisaoInteligenteResponse> inteligentes = buscarRevisoesInteligentes(usuarioId);
@@ -197,8 +232,26 @@ public class RevisaoInteligenteService {
         porPrioridade.put("MEDIA", (int) inteligentes.stream().filter(r -> "MEDIA".equals(r.getPrioridade())).count());
         porPrioridade.put("BAIXA", (int) inteligentes.stream().filter(r -> "BAIXA".equals(r.getPrioridade())).count());
 
-        // Erros por tema
-        Map<String, Integer> errosPorTema = calcularErrosPorTema(respostas);
+        // Erros por tema (formato array)
+        Map<String, Integer> errosPorTemaMap = calcularErrosPorTema(respostas);
+        List<IndicadoresRevisaoResponse.ErroPorTema> errosPorTemaList = errosPorTemaMap.entrySet().stream()
+                .map(e -> IndicadoresRevisaoResponse.ErroPorTema.builder()
+                        .tema(e.getKey())
+                        .quantidade(e.getValue())
+                        .build())
+                .collect(Collectors.toList());
+
+        // Probabilidade de esquecimento (top 10 conteúdos com maior risco)
+        List<IndicadoresRevisaoResponse.ProbabilidadeEsquecimento> probEsquecimento = inteligentes.stream()
+                .filter(r -> r.getProbabilidadeEsquecimento() != null && r.getProbabilidadeEsquecimento() > 0)
+                .sorted(Comparator.comparingDouble(RevisaoInteligenteResponse::getProbabilidadeEsquecimento).reversed())
+                .limit(10)
+                .map(r -> IndicadoresRevisaoResponse.ProbabilidadeEsquecimento.builder()
+                        .conteudo(r.getHanzi())
+                        .pinyin(r.getPinyin())
+                        .probabilidade(r.getProbabilidadeEsquecimento())
+                        .build())
+                .collect(Collectors.toList());
 
         // Acertos vs erros total
         long totalAcertos = respostas.stream().filter(r -> Boolean.TRUE.equals(r.getCorreta())).count();
@@ -212,10 +265,12 @@ public class RevisaoInteligenteService {
                 .tempoMedioResposta(Math.round(tempoMedio * 10.0) / 10.0)
                 .conteudosDominados(dominados)
                 .conteudosEmAprendizado(emAprendizado)
-                .evolucaoRetencao(evolucao)
+                .evolucaoDesempenho(evolucaoDesempenho)
+                .evolucaoRetencao(evolucaoRetencaoList)
+                .errosPorTema(errosPorTemaList)
                 .revisoesPorPrioridade(porPrioridade)
-                .errosPorTema(errosPorTema)
-                .acertosVsErros(AcertosErros.builder().acertos(totalAcertos).erros(totalErros).build())
+                .probabilidadeEsquecimento(probEsquecimento)
+                .acertosVsErros(IndicadoresRevisaoResponse.AcertosErros.builder().acertos(totalAcertos).erros(totalErros).build())
                 .build();
     }
 
@@ -229,12 +284,11 @@ public class RevisaoInteligenteService {
         Conteudo conteudo = conteudoRepository.findById(revisao.getConteudoId())
                 .orElseThrow(() -> new ResourceNotFoundException("Conteúdo", revisao.getConteudoId()));
 
-        // Verifica se resposta está correta (comparação case-insensitive com a tradução)
-        String respostaUsuario = request.getRespostaUsuario().trim().toLowerCase();
-        String respostaEsperada = conteudo.getTraducao().trim().toLowerCase();
-        boolean correta = respostaUsuario.equals(respostaEsperada)
-                || respostaEsperada.contains(respostaUsuario)
-                || respostaUsuario.contains(respostaEsperada);
+        // Verifica se resposta está correta usando validação flexível
+        log.info("[Revisão] Validando: usuario='{}' vs esperada='{}' (conteudo={})",
+                request.getRespostaUsuario(), conteudo.getTraducao(), conteudo.getHanzi());
+        boolean correta = RespostaValidator.isRespostaCorreta(
+                request.getRespostaUsuario(), conteudo.getTraducao());
 
         // Salva a resposta na tabela respostas
         // Busca um exercício associado a este conteúdo para vincular
@@ -271,6 +325,7 @@ public class RevisaoInteligenteService {
                 .repeticoes(revisao.getRepeticoes())
                 .lapsos(revisao.getLapsos())
                 .taxaAcerto(correta ? 100.0 : 0.0)
+                .scorePrioridade(correta ? 0 : 85)
                 .prioridade(correta ? "BAIXA" : "ALTA")
                 .motivo(correta ? "Resposta correta! Próxima revisão agendada." : "Resposta incorreta. Revisão agendada para amanhã.")
                 .build();
@@ -392,34 +447,7 @@ public class RevisaoInteligenteService {
 
     // ─── Helpers para Gráficos ───────────────────────────────────────────────
 
-    private List<EvolucaoDiaria> calcularEvolucaoRetencao(List<Resposta> respostas, int dias) {
-        List<EvolucaoDiaria> evolucao = new ArrayList<>();
-        DateTimeFormatter fmt = DateTimeFormatter.ISO_LOCAL_DATE;
-
-        for (int i = dias - 1; i >= 0; i--) {
-            LocalDate data = LocalDate.now().minusDays(i);
-            LocalDateTime inicioDia = data.atStartOfDay();
-            LocalDateTime fimDia = data.plusDays(1).atStartOfDay();
-
-            List<Resposta> doDia = respostas.stream()
-                    .filter(r -> r.getRespondidoEm() != null
-                            && r.getRespondidoEm().isAfter(inicioDia)
-                            && r.getRespondidoEm().isBefore(fimDia))
-                    .collect(Collectors.toList());
-
-            int totalDia = doDia.size();
-            long acertosDia = doDia.stream().filter(r -> Boolean.TRUE.equals(r.getCorreta())).count();
-            double taxa = totalDia > 0 ? (acertosDia * 100.0 / totalDia) : 0.0;
-
-            evolucao.add(EvolucaoDiaria.builder()
-                    .data(data.format(fmt))
-                    .taxaRetencao(Math.round(taxa * 10.0) / 10.0)
-                    .revisoes(totalDia)
-                    .build());
-        }
-
-        return evolucao;
-    }
+    // Helper method removed — logic inlined in calcularIndicadores
 
     private Map<String, Integer> calcularErrosPorTema(List<Resposta> respostas) {
         Map<String, Integer> errosPorTema = new LinkedHashMap<>();

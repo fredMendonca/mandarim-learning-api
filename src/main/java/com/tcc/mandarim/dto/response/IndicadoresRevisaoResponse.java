@@ -22,20 +22,50 @@ public class IndicadoresRevisaoResponse {
     private Integer conteudosDominados;
     private Integer conteudosEmAprendizado;
 
-    // Dados para gráficos
-    private List<EvolucaoDiaria> evolucaoRetencao;
+    // Dados para gráficos — formato compatível com Recharts
+    private List<EvolucaoDesempenho> evolucaoDesempenho;
+    private List<EvolucaoRetencao> evolucaoRetencao;
+    private List<ErroPorTema> errosPorTema;
     private Map<String, Integer> revisoesPorPrioridade;
-    private Map<String, Integer> errosPorTema;
+    private List<ProbabilidadeEsquecimento> probabilidadeEsquecimento;
     private AcertosErros acertosVsErros;
 
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class EvolucaoDiaria {
+    public static class EvolucaoDesempenho {
         private String data;
-        private Double taxaRetencao;
-        private Integer revisoes;
+        private Double taxaAcerto;
+        private Double tempoMedio;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class EvolucaoRetencao {
+        private String data;
+        private Double retencao;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ErroPorTema {
+        private String tema;
+        private Integer quantidade;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ProbabilidadeEsquecimento {
+        private String conteudo;
+        private String pinyin;
+        private Double probabilidade;
     }
 
     @Data
